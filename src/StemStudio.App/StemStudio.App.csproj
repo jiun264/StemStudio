@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\StemStudio.Core\StemStudio.Core.csproj" />
+    <ProjectReference Include="..\StemStudio.Infrastructure\StemStudio.Infrastructure.csproj" />
+    <ProjectReference Include="..\StemStudio.Worker\StemStudio.Worker.csproj"
+                      ReferenceOutputAssembly="false"
+                      Condition="'$(PublishProfile)' != 'FolderProfile'" />
+    <Content Include="..\..\backend\demucs_worker.py">
+      <Link>backend\demucs_worker.py</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <Target Name="CopyWorkerForDevelopment" AfterTargets="Build">
+    <Copy
+      SourceFiles="$(MSBuildProjectDirectory)\..\StemStudio.Worker\bin\$(Configuration)\net8.0\StemStudio.Worker.dll"
+      DestinationFolder="$(OutDir)"
+      Condition="Exists('$(MSBuildProjectDirectory)\..\StemStudio.Worker\bin\$(Configuration)\net8.0\StemStudio.Worker.dll')" />
+  </Target>
+
+</Project>

@@ -1,0 +1,66 @@
+<Window x:Class="StemStudio.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="StemStudio 設定"
+        Width="680"
+        Height="330"
+        MinWidth="580"
+        MinHeight="300"
+        WindowStartupLocation="CenterOwner"
+        Background="#10151D"
+        Foreground="#F3F5F8"
+        FontFamily="Segoe UI">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0"
+                   Margin="0,0,0,20"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   Text="設定" />
+        <StackPanel Grid.Row="1" Margin="0,0,0,18">
+            <TextBlock Margin="0,0,0,7" Text="分軌輸出資料夾" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        Margin="8,0,0,0"
+                        Click="BrowseOutputButton_Click"
+                        Content="瀏覽…" />
+                <TextBox x:Name="OutputDirectoryTextBox"
+                         Padding="8"
+                         Background="#1A222E"
+                         Foreground="#F3F5F8"
+                         BorderBrush="#39485A" />
+            </DockPanel>
+        </StackPanel>
+        <StackPanel Grid.Row="2">
+            <TextBlock Margin="0,0,0,7" Text="模型下載與快取資料夾" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        Margin="8,0,0,0"
+                        Click="BrowseModelButton_Click"
+                        Content="瀏覽…" />
+                <TextBox x:Name="ModelCacheDirectoryTextBox"
+                         Padding="8"
+                         Background="#1A222E"
+                         Foreground="#F3F5F8"
+                         BorderBrush="#39485A" />
+            </DockPanel>
+        </StackPanel>
+        <TextBlock Grid.Row="3"
+                   Margin="0,16,0,12"
+                   Foreground="#A7B2C2"
+                   Text="模型權重只會下載一次並保留在本機。變更快取位置後，若新位置沒有模型，StemStudio 會再次下載。" />
+        <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button Click="CancelButton_Click" Content="取消" />
+            <Button Background="#27866D"
+                    BorderBrush="#27866D"
+                    Click="SaveButton_Click"
+                    Content="儲存" />
+        </StackPanel>
+    </Grid>
+</Window>

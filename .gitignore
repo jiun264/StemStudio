@@ -1,0 +1,11 @@
+bin/
+obj/
+artifacts/
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+__pycache__/
+.venv/
+*.pyc
