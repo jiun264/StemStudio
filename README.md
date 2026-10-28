@@ -6,7 +6,6 @@ Windows 桌面 AI 樂曲分軌工具。拖放或選擇音訊檔，勾選要保�
 
 - **分軌模型：Demucs v4 `htdemucs_6s`**。
 - 這個六來源模型同時輸出 vocals、drums、bass、guitar、piano、other；StemStudio 第一版提供人聲、吉他、貝斯、鼓四種選項。
-- 吉他是實驗性來源，模型可能有音色外洩或殘留；品質取決於歌曲與混音。
 - 音訊與模型推論留在本機。首次啟動會詢問是否下載約 55 MB 的模型權重；建議預留至少 1 GB 可用磁碟空間供模型快取及音訊輸出。
 - 安裝包內含私有 CPython 3.12、CPU 版 PyTorch、Demucs 及獨立 worker；不依賴使用者全域 Python。模型權重不放入安裝包，首次使用才下載。
 
