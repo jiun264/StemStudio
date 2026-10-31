@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 MODEL_NAME = "htdemucs_6s"
 MODEL_MARKER = ".stemstudio-model-ready.json"
@@ -69,6 +70,90 @@ def prepare_model(cache_path):
     report("MODEL_READY|true")
 
 
+def remove_unresolvable_path_entries():
+    path_entries = os.environ.get("PATH", "").split(os.pathsep)
+    usable_entries = []
+    skipped_entry = False
+    for entry in path_entries:
+        if not entry:
+            continue
+        try:
+            os.path.realpath(entry)
+        except OSError as error:
+            if getattr(error, "winerror", None) != 448:
+                raise
+            skipped_entry = True
+            continue
+        usable_entries.append(entry)
+
+    if skipped_entry:
+        os.environ["PATH"] = os.pathsep.join(usable_entries)
+        report("略過 Windows 無法解析的 PATH 路徑，繼續檢查 yt-dlp 執行環境…")
+
+
+def download_audio(url, output_path):
+    parsed_url = urlsplit(url)
+    if (
+        parsed_url.scheme not in ("http", "https")
+        or not parsed_url.hostname
+        or parsed_url.username is not None
+        or parsed_url.password is not None
+    ):
+        raise ValueError("請輸入有效的公開 HTTP 或 HTTPS 網址；網址不得包含帳號或密碼。")
+
+    remove_unresolvable_path_entries()
+
+    import imageio_ffmpeg
+    import yt_dlp
+
+    destination = Path(output_path).expanduser().resolve()
+    destination.mkdir(parents=True, exist_ok=True)
+    last_reported_percent = -5
+
+    def report_progress(status):
+        nonlocal last_reported_percent
+        if status.get("status") == "finished":
+            report("下載完成，正在轉換 MP3…")
+            return
+
+        downloaded = status.get("downloaded_bytes")
+        total = status.get("total_bytes") or status.get("total_bytes_estimate")
+        if downloaded is None or not total:
+            report("正在下載音訊…")
+            return
+
+        percent = min(100, int(downloaded * 100 / total))
+        if percent >= last_reported_percent + 5 or percent == 100:
+            last_reported_percent = percent
+            report(f"正在下載音訊：{percent}%")
+
+    options = {
+        "format": "bestaudio/best",
+        "outtmpl": str(destination / "audio.%(ext)s"),
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "ffmpeg_location": imageio_ffmpeg.get_ffmpeg_exe(),
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }
+        ],
+        "progress_hooks": [report_progress],
+    }
+
+    report("正在連線並取得音訊…")
+    with yt_dlp.YoutubeDL(options) as downloader:
+        downloader.download([url])
+
+    audio_path = destination / "audio.mp3"
+    if not audio_path.is_file() or audio_path.stat().st_size == 0:
+        raise RuntimeError("下載或 MP3 轉換完成，但找不到有效的輸出檔案。")
+    report("下載與 MP3 轉換完成。")
+
+
 def separate(cache_path, input_path, output_path, stems):
     source = Path(input_path).expanduser().resolve()
     destination = Path(output_path).expanduser().resolve()
@@ -125,11 +210,15 @@ def separate(cache_path, input_path, output_path, stems):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("model-status", "prepare-model", "separate"))
+    parser.add_argument(
+        "command",
+        choices=("model-status", "prepare-model", "download-audio", "separate"),
+    )
     parser.add_argument("--model-cache", required=True)
     parser.add_argument("--input")
     parser.add_argument("--output")
     parser.add_argument("--stems")
+    parser.add_argument("--url")
     args = parser.parse_args()
     cache_path = configure_cache(args.model_cache)
 
@@ -137,6 +226,10 @@ def main():
         report(f"MODEL_READY|{str(model_is_ready(cache_path)).lower()}")
     elif args.command == "prepare-model":
         prepare_model(cache_path)
+    elif args.command == "download-audio":
+        if not args.url or not args.output:
+            raise ValueError("download-audio 指令需要 --url 和 --output。")
+        download_audio(args.url, args.output)
     else:
         if not args.input or not args.output or not args.stems:
             raise ValueError("separate 指令需要 --input、--output 和 --stems。")

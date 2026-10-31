@@ -26,6 +26,50 @@ public sealed class DemucsSeparationService(StemStudioSettings settings) : ISepa
         await RunWorkerAsync(["prepare-model"], progress, cancellationToken);
     }
 
+    public async Task<string> DownloadAudioAsync(
+        string url,
+        IProgress<string>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("http" or "https")
+            || !string.IsNullOrEmpty(uri.UserInfo))
+        {
+            throw new ArgumentException("請輸入有效的公開 HTTP 或 HTTPS 網址；網址不得包含帳號或密碼。", nameof(url));
+        }
+
+        Directory.CreateDirectory(settings.OutputDirectory);
+        var stagingDirectory = Path.Combine(
+            settings.OutputDirectory,
+            $".download-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(stagingDirectory);
+        try
+        {
+            await RunWorkerAsync(
+                ["download-audio", "--url", uri.AbsoluteUri, "--output", stagingDirectory],
+                progress,
+                cancellationToken);
+
+            var stagedAudio = Path.Combine(stagingDirectory, "audio.mp3");
+            if (!File.Exists(stagedAudio) || new FileInfo(stagedAudio).Length == 0)
+            {
+                throw new FileNotFoundException("網址音訊 worker 沒有產生預期的 MP3 檔案。", stagedAudio);
+            }
+
+            var outputFileName = $"網址音訊_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.mp3";
+            var outputFile = Path.Combine(settings.OutputDirectory, outputFileName);
+            File.Move(stagedAudio, outputFile);
+            return outputFile;
+        }
+        finally
+        {
+            if (Directory.Exists(stagingDirectory))
+            {
+                Directory.Delete(stagingDirectory, recursive: true);
+            }
+        }
+    }
+
     public async Task<SeparationResult> SeparateAsync(
         SeparationRequest request,
         IProgress<string>? progress,

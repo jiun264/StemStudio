@@ -52,15 +52,15 @@ if (-not (Test-Path $pythonExecutable)) {
     throw "Private Python runtime was not found: $pythonExecutable. Remove -SkipRuntimeBuild or provide the completed runtime."
 }
 
-Write-Host "Installing the pinned CPU-only Demucs environment (large download)..."
+Write-Host "Installing the pinned private audio-processing Python environment (large download)..."
 & $pythonExecutable -m pip install --disable-pip-version-check --no-warn-script-location -r (Join-Path $projectRoot "backend\requirements.txt")
 if ($LASTEXITCODE -ne 0) {
-    throw "Private Demucs runtime installation failed with exit code $LASTEXITCODE."
+    throw "Private Python runtime dependency installation failed with exit code $LASTEXITCODE."
 }
 
-& $pythonExecutable -c "from importlib.metadata import version; import demucs.separate, torch; assert torch.__version__ == '2.5.1+cpu'; print('Demucs', version('demucs'), 'Torch', torch.__version__)"
+& $pythonExecutable -c "from importlib.metadata import version; from pathlib import Path; import demucs.separate, imageio_ffmpeg, torch, yt_dlp; assert torch.__version__ == '2.5.1+cpu'; ffmpeg = Path(imageio_ffmpeg.get_ffmpeg_exe()); assert ffmpeg.is_file(); print('Demucs', version('demucs'), 'Torch', torch.__version__, 'yt-dlp', version('yt-dlp'), 'imageio-ffmpeg', version('imageio-ffmpeg'), 'FFmpeg', ffmpeg.name)"
 if ($LASTEXITCODE -ne 0) {
-    throw "The packaged Python runtime failed its import/version check."
+    throw "The packaged Python runtime failed its Demucs/yt-dlp/FFmpeg import and version check."
 }
 
 Copy-Item -LiteralPath (Join-Path $projectRoot "backend\demucs_worker.py") -Destination $backendRoot -Force

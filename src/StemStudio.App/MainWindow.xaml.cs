@@ -92,6 +92,52 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void DownloadAudioButton_Click(object sender, RoutedEventArgs e)
+    {
+        var url = AudioUrlTextBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            StatusText.Text = "請先貼上音訊網址。";
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        _processingCancellation = cancellation;
+        SetProcessingState(true);
+        try
+        {
+            StatusText.Text = "正在從網址取得音訊…";
+            var downloadedFile = await _separationService.DownloadAudioAsync(
+                url,
+                new Progress<string>(message => StatusText.Text = message),
+                cancellation.Token);
+            AddInputFiles([downloadedFile]);
+            AudioUrlTextBox.Clear();
+            StatusText.Text = $"音訊已下載並加入佇列：{Path.GetFileName(downloadedFile)}";
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            StatusText.Text = "已取消網址音訊下載。";
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = "網址音訊下載失敗。";
+            MessageBox.Show(this, exception.Message, "網址音訊下載失敗", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            cancellation.Dispose();
+            _processingCancellation = null;
+            SetProcessingState(false);
+        }
+    }
+
+    private void AudioUrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        DownloadAudioButton.IsEnabled =
+            _processingCancellation is null && !string.IsNullOrWhiteSpace(AudioUrlTextBox.Text);
+    }
+
     private void RemoveButton_Click(object sender, RoutedEventArgs e)
     {
         if (FileList.SelectedItem is string selectedFile)
@@ -221,7 +267,7 @@ public partial class MainWindow : Window
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
         _processingCancellation?.Cancel();
-        StatusText.Text = "正在取消目前的分軌工作…";
+        StatusText.Text = "正在取消目前工作…";
     }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
@@ -319,6 +365,9 @@ public partial class MainWindow : Window
         CancelButton.IsEnabled = isProcessing;
         SettingsButton.IsEnabled = !isProcessing;
         BrowseButton.IsEnabled = !isProcessing;
+        AudioUrlTextBox.IsEnabled = !isProcessing;
+        DownloadAudioButton.IsEnabled =
+            !isProcessing && !string.IsNullOrWhiteSpace(AudioUrlTextBox.Text);
         StemOptions.IsEnabled = !isProcessing;
         FileList.IsEnabled = !isProcessing;
         ProgressIndicator.Visibility = isProcessing ? Visibility.Visible : Visibility.Collapsed;

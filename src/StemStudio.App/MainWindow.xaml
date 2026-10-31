@@ -1,6 +1,7 @@
 <Window x:Class="StemStudio.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="pack://application:,,,/Assets/StemStudio.ico"
         Title="StemStudio - AI 樂曲分軌"
         Width="900"
         Height="760"
@@ -72,7 +73,7 @@
                         BorderThickness="1"
                         CornerRadius="8">
                     <ListBox x:Name="FileList"
-                             Height="146"
+                             Height="110"
                              Background="Transparent"
                              BorderThickness="0"
                              Foreground="#F3F5F8"
@@ -87,6 +88,32 @@
                 <TextBlock Margin="2,10,0,0"
                            Foreground="{StaticResource MutedBrush}"
                            Text="也可以將音訊檔拖放到這裡；支援 WAV、MP3、FLAC、M4A、OGG、WMA、AAC。" />
+                <StackPanel Margin="0,14,0,0">
+                    <DockPanel Margin="0,8,0,0" LastChildFill="True">
+                        <Button x:Name="DownloadAudioButton"
+                                DockPanel.Dock="Right"
+                                Click="DownloadAudioButton_Click"
+                                Content="下載 MP3"
+                                IsEnabled="False" />
+                        <TextBlock Margin="0,0,8,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="貼上網址" />
+                        <TextBox x:Name="AudioUrlTextBox"
+                                 MinHeight="36"
+                                 Padding="8,6"
+                                 Background="#121923"
+                                 BorderBrush="#334458"
+                                 Foreground="#F3F5F8"
+                                 ToolTip="貼上支援的公開 HTTP(S) 網址"
+                                 VerticalContentAlignment="Center"
+                                 TextChanged="AudioUrlTextBox_TextChanged" />
+                    </DockPanel>
+                    <TextBlock Margin="2,6,0,0"
+                               FontSize="12"
+                               Foreground="{StaticResource MutedBrush}"
+                               Text="僅下載你有權使用且來源允許下載的內容；不繞過 DRM 或登入限制。" />
+                </StackPanel>
             </StackPanel>
         </Border>
 

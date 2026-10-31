@@ -4,3 +4,5 @@ demucs==4.1.0
 torch==2.5.1+cpu
 torchaudio==2.5.1+cpu
 numpy==1.26.4
+yt-dlp==2026.10.26
+imageio-ffmpeg==0.7.0

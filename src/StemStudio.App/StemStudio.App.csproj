@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Resource Include="Assets\StemStudio.ico" />
     <ProjectReference Include="..\StemStudio.Core\StemStudio.Core.csproj" />
     <ProjectReference Include="..\StemStudio.Infrastructure\StemStudio.Infrastructure.csproj" />
     <ProjectReference Include="..\StemStudio.Worker\StemStudio.Worker.csproj"
@@ -18,6 +19,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\StemStudio.ico</ApplicationIcon>
   </PropertyGroup>
 
   <Target Name="CopyWorkerForDevelopment" AfterTargets="Build">

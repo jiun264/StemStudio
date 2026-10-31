@@ -17,6 +17,7 @@ OutputBaseFilename=StemStudio-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\StemStudio.App\Assets\StemStudio.ico
 UninstallDisplayIcon={app}\StemStudio.App.exe
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
