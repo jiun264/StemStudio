@@ -5,17 +5,58 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import wave
 from pathlib import Path
 from urllib.parse import urlsplit
 
 MODEL_NAME = "htdemucs_6s"
 MODEL_MARKER = ".stemstudio-model-ready.json"
 HF_REPOSITORY_CACHE = Path("hub") / "models--adefossez--HTDemucs-6s"
-SUPPORTED_STEMS = {"vocals", "guitar", "bass", "drums"}
+SUPPORTED_STEMS = {"vocals", "guitar", "bass", "drums", "piano"}
+MODEL_STEMS = ("vocals", "drums", "bass", "guitar", "piano", "other")
 
 
 def report(message):
     print(message, flush=True)
+
+
+def mix_pcm16_wav_files(input_paths, output_path):
+    import numpy as np
+
+    mixed_samples = None
+    audio_format = None
+    for input_path in input_paths:
+        with wave.open(str(input_path), "rb") as wav_file:
+            current_format = (
+                wav_file.getnchannels(),
+                wav_file.getsampwidth(),
+                wav_file.getframerate(),
+                wav_file.getnframes(),
+                wav_file.getcomptype(),
+            )
+            if current_format[1] != 2 or current_format[4] != "NONE":
+                raise RuntimeError(f"來源音軌不是未壓縮的 16-bit PCM WAV：{Path(input_path).name}")
+            if audio_format is None:
+                audio_format = current_format
+            elif current_format != audio_format:
+                raise RuntimeError("Demucs 音軌格式或長度不一致，無法合併輸出。")
+
+            samples = np.frombuffer(wav_file.readframes(current_format[3]), dtype="<i2")
+            samples = samples.astype(np.int32)
+            if mixed_samples is None:
+                mixed_samples = samples
+            else:
+                mixed_samples += samples
+
+    if mixed_samples is None or audio_format is None:
+        raise RuntimeError("找不到可供合併的 Demucs 音軌。")
+
+    output_samples = np.clip(mixed_samples, -32768, 32767).astype("<i2")
+    with wave.open(str(output_path), "wb") as wav_file:
+        wav_file.setnchannels(audio_format[0])
+        wav_file.setsampwidth(audio_format[1])
+        wav_file.setframerate(audio_format[2])
+        wav_file.writeframes(output_samples.tobytes())
 
 
 def configure_cache(path):
@@ -154,7 +195,7 @@ def download_audio(url, output_path):
     report("下載與 MP3 轉換完成。")
 
 
-def separate(cache_path, input_path, output_path, stems):
+def separate(cache_path, input_path, output_path, stems, mode):
     source = Path(input_path).expanduser().resolve()
     destination = Path(output_path).expanduser().resolve()
     if not source.is_file():
@@ -164,6 +205,10 @@ def separate(cache_path, input_path, output_path, stems):
     invalid_stems = set(selected_stems) - SUPPORTED_STEMS
     if not selected_stems or invalid_stems:
         raise ValueError(f"音軌選擇無效：{', '.join(sorted(invalid_stems))}")
+    if mode not in ("extract", "remove"):
+        raise ValueError(f"處理模式無效：{mode}")
+    if mode == "remove" and len(selected_stems) != 1:
+        raise ValueError("移除模式只能選擇一種要移除的樂器。")
 
     if not model_is_ready(cache_path):
         raise RuntimeError("模型尚未準備完成，請先下載 Demucs 模型。")
@@ -199,11 +244,25 @@ def separate(cache_path, input_path, output_path, stems):
             raise RuntimeError(f"Demucs 分軌失敗，結束碼：{result}")
 
         model_output = Path(temporary) / MODEL_NAME / source.stem
-        for stem in selected_stems:
-            source_stem = model_output / f"{stem}.wav"
-            if not source_stem.is_file():
-                raise FileNotFoundError(f"Demucs 沒有產生預期的音軌：{source_stem.name}")
-            shutil.copy2(source_stem, destination / source_stem.name)
+        if mode == "remove":
+            removed_stem = selected_stems[0]
+            source_stems = [
+                model_output / f"{stem}.wav"
+                for stem in MODEL_STEMS
+                if stem != removed_stem
+            ]
+            for source_stem in source_stems:
+                if not source_stem.is_file():
+                    raise FileNotFoundError(f"Demucs 沒有產生預期的音軌：{source_stem.name}")
+
+            output_file = destination / f"{source.stem}_without_{removed_stem}.wav"
+            mix_pcm16_wav_files(source_stems, output_file)
+        else:
+            for stem in selected_stems:
+                source_stem = model_output / f"{stem}.wav"
+                if not source_stem.is_file():
+                    raise FileNotFoundError(f"Demucs 沒有產生預期的音軌：{source_stem.name}")
+                shutil.copy2(source_stem, destination / source_stem.name)
 
     report("分軌完成。")
 
@@ -218,6 +277,7 @@ def main():
     parser.add_argument("--input")
     parser.add_argument("--output")
     parser.add_argument("--stems")
+    parser.add_argument("--mode", choices=("extract", "remove"), default="extract")
     parser.add_argument("--url")
     args = parser.parse_args()
     cache_path = configure_cache(args.model_cache)
@@ -233,7 +293,7 @@ def main():
     else:
         if not args.input or not args.output or not args.stems:
             raise ValueError("separate 指令需要 --input、--output 和 --stems。")
-        separate(cache_path, args.input, args.output, args.stems)
+        separate(cache_path, args.input, args.output, args.stems, args.mode)
 
 
 if __name__ == "__main__":

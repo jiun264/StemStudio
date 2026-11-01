@@ -5,5 +5,6 @@ public enum SeparationStem
     Vocals,
     Guitar,
     Bass,
-    Drums
+    Drums,
+    Piano
 }

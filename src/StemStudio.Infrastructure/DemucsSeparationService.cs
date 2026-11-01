@@ -12,7 +12,8 @@ public sealed class DemucsSeparationService(StemStudioSettings settings) : ISepa
             [SeparationStem.Vocals] = "vocals.wav",
             [SeparationStem.Guitar] = "guitar.wav",
             [SeparationStem.Bass] = "bass.wav",
-            [SeparationStem.Drums] = "drums.wav"
+            [SeparationStem.Drums] = "drums.wav",
+            [SeparationStem.Piano] = "piano.wav"
         };
 
     public async Task<bool> IsModelReadyAsync(CancellationToken cancellationToken)
@@ -88,6 +89,11 @@ public sealed class DemucsSeparationService(StemStudioSettings settings) : ISepa
         }
 
         var selectedStems = request.Stems.Distinct().ToArray();
+        if (request.RemoveSelectedStem && selectedStems.Length != 1)
+        {
+            throw new ArgumentException("移除模式只能選擇一種要移除的樂器。", nameof(request));
+        }
+
         if (selectedStems.Any(stem => !StemFileNames.ContainsKey(stem)))
         {
             throw new ArgumentException("要求中包含不支援的音軌類型。", nameof(request));
@@ -100,6 +106,7 @@ public sealed class DemucsSeparationService(StemStudioSettings settings) : ISepa
             "separate",
             "--input", request.InputPath,
             "--output", outputDirectory,
+            "--mode", request.RemoveSelectedStem ? "remove" : "extract",
             "--stems", string.Join(",", selectedStems.Select(stem => StemFileNames[stem][..^4]))
         };
         try
@@ -116,9 +123,9 @@ public sealed class DemucsSeparationService(StemStudioSettings settings) : ISepa
             throw;
         }
 
-        var outputFiles = selectedStems
-            .Select(stem => Path.Combine(outputDirectory, StemFileNames[stem]))
-            .ToList();
+        IReadOnlyList<string> outputFiles = request.RemoveSelectedStem
+            ? [Path.Combine(outputDirectory, $"{trackName}_without_{selectedStems[0].ToString().ToLowerInvariant()}.wav")]
+            : selectedStems.Select(stem => Path.Combine(outputDirectory, StemFileNames[stem])).ToList();
         var missingFile = outputFiles.FirstOrDefault(path => !File.Exists(path));
         if (missingFile is not null)
         {

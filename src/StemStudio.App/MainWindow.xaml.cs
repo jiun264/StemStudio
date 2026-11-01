@@ -22,6 +22,8 @@ public partial class MainWindow : Window
     private StemStudioSettings _settings;
     private DemucsSeparationService _separationService;
     private CancellationTokenSource? _processingCancellation;
+    private bool _updatingStemSelection;
+    private bool _removeModeActive;
 
     public MainWindow()
     {
@@ -212,9 +214,13 @@ public partial class MainWindow : Window
         }
 
         var selectedStems = GetSelectedStems();
-        if (selectedStems.Count == 0)
+        var removeSelectedStem = RemoveModeRadioButton.IsChecked == true;
+        if (selectedStems.Count == 0 || (removeSelectedStem && selectedStems.Count != 1))
         {
-            MessageBox.Show(this, "請至少選擇一種要輸出的音軌。", "尚未選擇音軌", MessageBoxButton.OK, MessageBoxImage.Information);
+            var message = removeSelectedStem
+                ? "請選擇一種要移除的樂器。"
+                : "請至少選擇一種要輸出的音軌。";
+            MessageBox.Show(this, message, "尚未選擇音軌", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -237,7 +243,7 @@ public partial class MainWindow : Window
                 cancellation.Token.ThrowIfCancellationRequested();
                 StatusText.Text = $"正在分離：{Path.GetFileName(inputFile)}";
                 var result = await _separationService.SeparateAsync(
-                    new SeparationRequest(inputFile, selectedStems),
+                    new SeparationRequest(inputFile, selectedStems, removeSelectedStem),
                     progress,
                     cancellation.Token);
                 completed++;
@@ -356,8 +362,64 @@ public partial class MainWindow : Window
             stems.Add(SeparationStem.Drums);
         }
 
+        if (PianoCheckBox.IsChecked == true)
+        {
+            stems.Add(SeparationStem.Piano);
+        }
+
         return stems;
     }
+
+    private void ProcessingMode_Click(object sender, RoutedEventArgs e)
+    {
+        var removeModeActive = RemoveModeRadioButton.IsChecked == true;
+        if (_removeModeActive == removeModeActive)
+        {
+            return;
+        }
+
+        _removeModeActive = removeModeActive;
+        _updatingStemSelection = true;
+        foreach (var checkBox in GetStemCheckBoxes())
+        {
+            checkBox.IsChecked = RemoveModeRadioButton.IsChecked != true;
+        }
+
+        _updatingStemSelection = false;
+        StemModeDescription.Text = RemoveModeRadioButton.IsChecked == true
+            ? "勾選一種要移除的樂器；其餘來源（包含其他音訊）會合成並輸出為單一 WAV。"
+            : "分離模型會計算多種音軌，最後只輸出你勾選的音軌。";
+    }
+
+    private void StemSelection_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_updatingStemSelection
+            || RemoveModeRadioButton.IsChecked != true
+            || sender is not CheckBox selectedCheckBox)
+        {
+            return;
+        }
+
+        _updatingStemSelection = true;
+        foreach (var checkBox in GetStemCheckBoxes())
+        {
+            if (!ReferenceEquals(checkBox, selectedCheckBox))
+            {
+                checkBox.IsChecked = false;
+            }
+        }
+
+        _updatingStemSelection = false;
+    }
+
+    private CheckBox[] GetStemCheckBoxes() =>
+    [
+        VocalsCheckBox,
+        GuitarCheckBox,
+        BassCheckBox,
+        DrumsCheckBox,
+        PianoCheckBox
+    ];
 
     private void SetProcessingState(bool isProcessing)
     {

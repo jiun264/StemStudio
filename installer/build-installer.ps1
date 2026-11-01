@@ -63,8 +63,6 @@ if ($LASTEXITCODE -ne 0) {
     throw "The packaged Python runtime failed its Demucs/yt-dlp/FFmpeg import and version check."
 }
 
-Copy-Item -LiteralPath (Join-Path $projectRoot "backend\demucs_worker.py") -Destination $backendRoot -Force
-
 Write-Host "Publishing the .NET 8 WPF application..."
 dotnet publish (Join-Path $projectRoot "src\StemStudio.App\StemStudio.App.csproj") `
     --configuration Release --runtime win-x64 --self-contained true `
@@ -73,6 +71,7 @@ dotnet publish (Join-Path $projectRoot "src\StemStudio.App\StemStudio.App.csproj
 if ($LASTEXITCODE -ne 0) {
     throw "Application publish failed with exit code $LASTEXITCODE."
 }
+Copy-Item -LiteralPath (Join-Path $projectRoot "backend\demucs_worker.py") -Destination $backendRoot -Force
 
 if (Test-Path $workerStage) {
     Remove-Item -LiteralPath $workerStage -Recurse -Force

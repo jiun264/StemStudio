@@ -1,11 +1,11 @@
 # StemStudio
 
-Windows 桌面 AI 樂曲分軌工具。拖放或選擇音訊檔，或貼上有權下載的網址匯入音訊，再勾選要保留的人聲、吉他、貝斯、鼓音軌，並在本機完成處理。
+Windows 桌面 AI 樂曲分軌工具。拖放或選擇音訊檔，或貼上有權下載的網址匯入音訊，可選擇分離人聲、吉他、貝斯、鼓、鋼琴，或移除其中一種樂器並將其餘來源合成單一音檔；處理皆在本機完成。
 
 ## 模型決策
 
 - **分軌模型：Demucs v4 `htdemucs_6s`**。
-- 這個六來源模型同時輸出 vocals、drums、bass、guitar、piano、other；StemStudio 第一版提供人聲、吉他、貝斯、鼓四種選項。
+- 這個六來源模型同時輸出 vocals、drums、bass、guitar、piano、other；StemStudio 提供人聲、吉他、貝斯、鼓、鋼琴五種分軌選項，並可移除單一樂器後合併輸出其餘來源。
 - 音訊與模型推論留在本機。首次啟動會詢問是否下載約 55 MB 的模型權重；建議預留至少 1 GB 可用磁碟空間供模型快取及音訊輸出。
 - 安裝包內含私有 CPython 3.12、CPU 版 PyTorch、Demucs 及獨立 worker；不依賴使用者全域 Python。模型權重不放入安裝包，首次使用才下載。
 - 私有 Python runtime 也封裝 yt-dlp 與 FFmpeg；貼上支援的公開 HTTP(S) 網址即可下載並轉成 MP3，完成後自動加入分軌佇列。不使用瀏覽器 cookies，不提供 DRM 或登入限制繞過。

@@ -1,5 +1,5 @@
 #define AppName "StemStudio"
-#define AppVersion "0.1.0"
+#define AppVersion "0.2.0"
 #define AppPublisher "StemStudio"
 #define PayloadDir "..\artifacts\installer\payload"
 
